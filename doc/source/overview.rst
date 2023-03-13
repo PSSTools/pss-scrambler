@@ -64,3 +64,22 @@ The result after processing with PSS Scrambler is shown below. Note a few things
             do phys_c::c;
         }
     }
+
+Installing PSS Scrambler
+========================
+
+PSS Scrambler is most easily installed via `pip`. Simply use the command below:
+
+.. code-block::
+
+    % python3 -m pip install --upgrade pss-scrambler
+
+
+Once installed, PSS scrambler can be invoked via the Python module or wrapper script:
+
+.. code-block::
+    
+    % python3 -m pss_scrambler ...
+    % pss-scrambler ...
+
+
