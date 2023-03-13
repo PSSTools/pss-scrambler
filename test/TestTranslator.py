@@ -34,7 +34,7 @@ class TestTranslator(unittest.TestCase):
         }
         """
 
-        t = Translator({}, dictionary, {})
+        t = Translator(0, {}, dictionary, {})
         out = StringIO()
         t.translate(StringIO(text), out)
 
@@ -55,7 +55,7 @@ class TestTranslator(unittest.TestCase):
         }
         """
 
-        t = Translator({}, dictionary, {})
+        t = Translator(0, {}, dictionary, {})
         out = StringIO()
         t.translate(StringIO(text), out)
 
@@ -76,7 +76,32 @@ class TestTranslator(unittest.TestCase):
         }
         """
 
-        t = Translator({}, dictionary, {"entry_a"})
+        t = Translator(0, {}, dictionary, {"entry_a"})
+        out = StringIO()
+        t.translate(StringIO(text), out)
+
+        print("Result:\n%s\n" % out.getvalue())
+
+    def test_smoke_ignore_comments(self):
+        text = """
+        component my_c {
+            /* This is multi-line single-line comment */
+            action my_a {
+               /*
+                * A multi-line multi-line
+                * comment
+                */
+            }
+            
+            action entry_a {//A close single-line
+                activity {
+                    do my_c::my_a;
+                }
+            }
+        }
+        """
+
+        t = Translator(100, {}, dictionary, {"entry_a"})
         out = StringIO()
         t.translate(StringIO(text), out)
 

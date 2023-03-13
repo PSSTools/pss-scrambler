@@ -24,11 +24,21 @@ import sys
 dictionary = []
 
 scripts_dir = os.path.dirname(os.path.abspath(__file__))
+project_dir = os.path.dirname(scripts_dir)
+
+sys.path.insert(0, os.path.join(project_dir, "src"))
+
+from pss_scrambler.pss_keywords import pss_keywords
+
 
 with open(os.path.join(scripts_dir, "google-10000-english-no-swears.txt"), "r") as fp:
 
     for line in fp.readlines():
         line = line.strip()
+
+        if line in pss_keywords:
+#            print("%s is a keyword" % line)
+            continue
 
         while len(dictionary) < len(line):
             dictionary.append(None)

@@ -1,15 +1,21 @@
 
+import random
 from .pss_keywords import pss_keywords
 
 class Translator(object):
 
     def __init__(self,
+                 seed,
                  defined_mappings,
                  new_mapping_dict,
                  ignore_words):
+        self.rand = random.Random(str(seed))
         self.defined_mappings = defined_mappings.copy()
         self.new_mapping_dict = new_mapping_dict
         self.ignore_words = pss_keywords.copy()
+        self.preserve_comments = False
+
+
         # Suffixes are the markers that denote type
         # categories. Retaining these is helpful
         self.suffixes = {"_a", "_c", "_e", "_s", "_t"}
@@ -32,6 +38,10 @@ class Translator(object):
             if c == "_" or c.isalpha():
                 # Should be able to form a token
                 token = c
+
+                # TODO: Check to confirm that this isn't the
+                # base for a number
+
                 while True:
                     c = self._getc()
                     if c == "":
@@ -49,10 +59,41 @@ class Translator(object):
                     # Need o form a new mapping
                     token_xl = self.map_token(token)
                     self.out_s.write(token_xl)
+            elif c == '/':
+                nc = self._getc()
+                comment = None
+                if nc == '/':
+                    # Single-line comment
+                    comment = c
+                    comment += nc
+                    while True:
+                        c = self._getc()
+                        if c == "" or c == "\n":
+                            self._ungetc(c)
+                            break
+                        comment += c
+                elif nc == '*':
+                    # Multi-line comment
+                    last = ["", ""]
+                    comment = c
+                    comment += nc
+
+                    while True:
+                        c = self._getc()
+                        comment += c
+                        last[0] = last[1]
+                        last[1] = c
+                        if c == "" or (last[0] == '*' and last[1] == '/'):
+                            break
+                else:
+                    # Not a comment
+                    self._ungetc(nc)
+                    self.out_s.write(c)
+
+                if comment is not None and self.preserve_comments:
+                    self.out_s.write(comment)
             else:
                 self.out_s.write(c)
-
-        pass
 
     def _getc(self):
         if self._c != "":
@@ -71,7 +112,7 @@ class Translator(object):
         while remap_i < len(self.new_mapping_dict) and len(self.new_mapping_dict[remap_i]) == 0:
             remap_i += 1
 
-        token_xl_i = 0 # TODO: randomly select
+        token_xl_i = self.rand.randint(0, len(self.new_mapping_dict[remap_i])-1)
         token_xl = self.new_mapping_dict[remap_i][token_xl_i]
         self.new_mapping_dict[remap_i].pop(token_xl_i)
 

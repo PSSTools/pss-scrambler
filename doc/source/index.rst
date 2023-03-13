@@ -10,6 +10,9 @@ Welcome to PSS Scrambler's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   overview
+   cmdref
+
 
 
 Indices and tables

@@ -19,10 +19,17 @@
 #*     Author: 
 #****************************************************************************
 from ..dictionary import dictionary
+from ..translator import Translator
 
 class CmdEncode(object):
 
     def __call__(self, args):
+        t = Translator(
+            args.seed, {}, dictionary, {})
         
-        pass
+        with open(args.output, "w") as ofp:
+            for f in args.files:
+                with open(f, "r") as ifp:
+                    t.translate(ifp, ofp)
+
 

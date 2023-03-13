@@ -40,5 +40,7 @@ pss_keywords = {
 "reg_c", "READWRITE", "READONLY", "WRITEONLY",
 "read", "write", "read_val", "write_val",
 "reg_group_c", "get_offset_of_instance", "get_offset_of_instance_array",
-"get_offset_of_path", "st_handle"
+"get_offset_of_path", "st_handle",
+
+"pss_top"
 }

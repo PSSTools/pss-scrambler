@@ -27,10 +27,16 @@ def getparser():
     subparsers = parser.add_subparsers()
     subparsers.required = True
 
-    cmd_enc = subparsers.add_parser("enc", "encode",
+    cmd_enc = subparsers.add_parser("enc", 
             help="Encode a series of PSS files to use obfuscated identifiers")
     cmd_enc.add_argument("-o", "--output", default="scrambled.pss",
             help="Specify the output file. By default, the output is 'scrambled.pss'")
+    cmd_enc.add_argument("-c", "--preserve-comments", action="store_true",
+            help="Preserve comments from input")
+    cmd_enc.add_argument("-s", "--seed", default="0",
+            help="Specifies the seed to use in randomly selecting replacement words")
+    cmd_enc.add_argument("files", nargs="+",
+            help="PSS files to encode")
     cmd_enc.set_defaults(func=CmdEncode())
 
     return parser
@@ -39,7 +45,7 @@ def main():
     parser = getparser()
 
     args = parser.parse_args()
-    pass
+    args.func(args)
 
 if __name__ == "__main__":
     main()

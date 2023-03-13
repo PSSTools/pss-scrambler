@@ -2,5 +2,23 @@ package:
     name: pss-scrambler
     version: None
     deps: []
-    dev-deps: []
+    dev-deps: 
+    - name: cairosvg
+      src: pypi
+    - name: requirements-parser
+      src: pypi
+    - name: Sphinx
+      src: pypi
+    - name: sphinx-argparse
+      src: pypi
+    - name: sphinxcontrib-makedomain
+      src: pypi
+    - name: sphinxcontrib-openapi
+      src: pypi
+    - name: sphinxcontrib-spelling
+      src: pypi
+    - name: sphinx-rtd-theme
+      src: pypi
+    - name: sphinx-jsonschema
+      src: pypi
 
