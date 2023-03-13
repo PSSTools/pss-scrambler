@@ -13,7 +13,7 @@ if "BUILD_NUM" in os.environ.keys():
 setup(
   name = "pss-scrambler",
   version = version,
-  packages=['pss_scrambler'],
+  packages=['pss_scrambler', 'pss_scrambler.cmds'],
   package_dir = {'' : 'src'},
 #  package_data = {'pss_scrambler': ['scripts/*', 'templates/*', 'share/*', 'share/cmake/*']},
   author = "Matthew Ballance",
