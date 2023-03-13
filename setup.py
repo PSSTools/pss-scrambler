@@ -20,12 +20,11 @@ setup(
   author_email = "matt.ballance@gmail.com",
   description = ("PSS Scrambler replaces user-specified identifiers with random names."),
   long_description="""
-  IVPM fetches Python and non-Python packages from package and source
-  repositories. Python packages are installed into a local Python 
-  virtual environment. Source packages are installed in editable mode
+  PSS Scrambler obfuscates PSS source files by replacing user-specified
+  identifiers with randomly-selected ones.
   """,
   license = "Apache 2.0",
-  keywords = ["PSS", "Portable Test and Stimulus", "RTL", "Coverage"],
+  keywords = ["PSS", "Portable Test and Stimulus", "obfuscator"],
   url = "https://github.com/psstools/pss-scrambler",
   entry_points={
     'console_scripts': [
@@ -36,11 +35,6 @@ setup(
     'setuptools_scm',
   ],
   install_requires=[
-      'jsonschema',
-      'pyyaml',
-      'pyyaml-srcinfo-loader',
-      'requirements-parser',
-      'toposort'
   ],
 )
 
