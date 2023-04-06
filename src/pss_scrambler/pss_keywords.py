@@ -15,7 +15,7 @@ pss_keywords = {
 "pure", "rand", "ref", "repeat", "replicate", "resource", "instance_id"
 "return", "run_end", "run_start", "schedule", "select", "sequence",
 "set", "share", "solve", "state", "static", "stream",
-"string", "struct", "super", "symbol", "target", "true",
+"string", "struct", "super", "symbol", "target", "this", "true",
 "type", "typedef", "unique", "void", "while", "with",
 
 # Built-in types from the core library

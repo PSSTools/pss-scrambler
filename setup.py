@@ -5,7 +5,7 @@ from setuptools.command.install import install
 
 rootdir = os.path.dirname(os.path.realpath(__file__))
 
-version="0.0.1"
+version="0.0.2"
 
 if "BUILD_NUM" in os.environ.keys():
     version += "." + os.environ["BUILD_NUM"]

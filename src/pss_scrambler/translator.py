@@ -109,8 +109,13 @@ class Translator(object):
     def map_token(self, token):
         remap_i = len(token)-1
 
+        # Find the word category that is closest to the length
+        # of the identifier to be replaced that still has available replacements
         while remap_i < len(self.new_mapping_dict) and len(self.new_mapping_dict[remap_i]) == 0:
             remap_i += 1
+
+        while remap_i >= len(self.new_mapping_dict) or len(self.new_mapping_dict[remap_i]) == 0:
+            remap_i -= 1 
 
         token_xl_i = self.rand.randint(0, len(self.new_mapping_dict[remap_i])-1)
         token_xl = self.new_mapping_dict[remap_i][token_xl_i]
@@ -120,6 +125,10 @@ class Translator(object):
             if token.endswith(s):
                 token_xl += s
                 break
+
+        # If the word to replace is all-uppercase, copy that
+        if token.isupper():
+            token_xl = token_xl.upper()
         
         self.defined_mappings[token] = token_xl
 
