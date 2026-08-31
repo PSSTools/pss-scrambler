@@ -88,8 +88,17 @@ jobs:
       # On a v* tag BUILD_NUM is left unset, so setup.py uses the version
       # exactly as committed.
       run: |
-        # Install dependencies required to load ivpm.yaml file
-        python3 -m pip install ivpm
+        # Install dependencies required to load ivpm.yaml file.
+        #
+        # importlib_metadata is installed EXPLICITLY. ivpm 2.24.0 does
+        # `from importlib_metadata import entry_points` unconditionally, and
+        # does not declare the backport as a dependency -- on Python 3.9,
+        # which this job pins, the stdlib module is `importlib.metadata` and
+        # the backport is absent, so `ivpm update` exits 1 with a traceback.
+        # The first Actions run this repository ever had, on 2026-08-31,
+        # failed exactly there. This is a workaround at the call site; the
+        # defect is in ivpm's packaging and is recorded upstream of here.
+        python3 -m pip install ivpm importlib_metadata
         python3 -m ivpm update
         case "$GITHUB_REF" in
           refs/tags/v*) echo "tag build -- leaving the version as committed" ;;
