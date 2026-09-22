@@ -23,7 +23,7 @@ setup(
   PSS Scrambler obfuscates PSS source files by replacing user-specified
   identifiers with randomly-selected ones.
   """,
-  license = "Apache 2.0",
+  license = "Apache-2.0",  # SPDX identifier; "Apache 2.0" is not one
   keywords = ["PSS", "Portable Test and Stimulus", "obfuscator"],
   url = "https://github.com/psstools/pss-scrambler",
   entry_points={
