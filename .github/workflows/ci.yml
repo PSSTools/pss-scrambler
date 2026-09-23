@@ -224,9 +224,22 @@ jobs:
       # Actions run this repository ever had, on 2026-08-31, failed exactly
       # there. This is a workaround at the call site; the defect is in ivpm's
       # packaging and is recorded upstream of here.
+      # THE BACKPORT IS NEEDED IN BOTH INTERPRETERS, for two different
+      # reasons, and installing it in one does not help the other -- ivpm
+      # creates packages/python as a separate venv.
+      #
+      #   outer python3        -- ivpm 2.24.0 itself imports it
+      #   packages/python 3.9  -- Sphinx's registry.py does
+      #                           `from importlib_metadata import entry_points`
+      #
+      # Both are the same underlying defect: on Python 3.9 the stdlib module
+      # is `importlib.metadata` and the backport is a separate distribution
+      # that neither package declares as a dependency. Workarounds at the call
+      # site; the defects are upstream of here.
       run: |
         python3 -m pip install ivpm importlib_metadata
         python3 -m ivpm update
+        ./packages/python/bin/python3 -m pip install importlib_metadata
         ./packages/python/bin/sphinx-build -M html ./doc/source build
         touch build/html/.nojekyll
 
