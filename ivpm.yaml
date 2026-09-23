@@ -1,24 +1,43 @@
 package:
     name: pss-scrambler
-    version: None
-    deps: []
-    dev-deps: 
-    - name: cairosvg
-      src: pypi
-    - name: requirements-parser
-      src: pypi
-    - name: Sphinx
-      src: pypi
-    - name: sphinx-argparse
-      src: pypi
-    - name: sphinxcontrib-makedomain
-      src: pypi
-    - name: sphinxcontrib-openapi
-      src: pypi
-    - name: sphinxcontrib-spelling
-      src: pypi
-    - name: sphinx-rtd-theme
-      src: pypi
-    - name: sphinx-jsonschema
-      src: pypi
 
+    # `version:` used to sit here, set to the string "None". It is gone: the
+    # package version now comes from the git tag by way of
+    # src/pss_scrambler/__version__.py, and a second place to declare it is a
+    # second place for it to be wrong.
+
+    # A bare `ivpm update` must resolve the *development* set. `default` is
+    # empty -- pss-scrambler is pure Python with no runtime dependencies --
+    # and everything that makes the repo documentable lives in `default-dev`.
+    default-dep-set: default-dev
+
+    dep-sets:
+    # Runtime. Deliberately empty, and it must stay declared rather than
+    # omitted: `deps: []` is the statement that this package needs nothing at
+    # run time, which is also what pyproject.toml's `dependencies = []` says.
+    - name: default
+      deps: []
+
+    # Development. Sphinx and its extensions, used only by the docs build.
+    # Nothing here is needed to build the wheel -- see the note in
+    # .github/workflows/ci.yml.
+    - name: default-dev
+      deps:
+      - name: cairosvg
+        src: pypi
+      - name: requirements-parser
+        src: pypi
+      - name: Sphinx
+        src: pypi
+      - name: sphinx-argparse
+        src: pypi
+      - name: sphinxcontrib-makedomain
+        src: pypi
+      - name: sphinxcontrib-openapi
+        src: pypi
+      - name: sphinxcontrib-spelling
+        src: pypi
+      - name: sphinx-rtd-theme
+        src: pypi
+      - name: sphinx-jsonschema
+        src: pypi

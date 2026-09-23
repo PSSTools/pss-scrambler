@@ -143,24 +143,22 @@ jobs:
       # `python -m build` with build isolation, NOT `setup.py bdist_wheel`.
       # setup.py is gone: all metadata lives in pyproject.toml, which is the
       # only way to emit PEP 639's `License-Expression`. Isolation matters
-      # here because [build-system] requires setuptools>=77 for that field,
-      # and the ivpm-provisioned interpreter carries whatever setuptools it
-      # happens to have.
+      # because [build-system] requires setuptools>=77 for that field, and it
+      # is what guarantees that requirement is met rather than assumed.
+      #
+      # NO ivpm HERE, and that is the point. The wheel build used to run
+      # through ./packages/python -- the venv ivpm provisions -- which coupled
+      # packaging to dependency resolution for no reason: pss-scrambler is
+      # pure Python with no runtime dependencies, so there is nothing for ivpm
+      # to supply that a wheel build needs. The coupling was not theoretical.
+      # `ivpm update` has failed on this repo since 2026-08-31 (first on a
+      # missing importlib_metadata, then on the ivpm.yaml format), and it took
+      # the wheel down with it every time even though the wheel never needed
+      # it. ivpm is still used below for the docs build, which genuinely does
+      # depend on it.
       run: |
-        # Install dependencies required to load ivpm.yaml file.
-        #
-        # importlib_metadata is installed EXPLICITLY. ivpm 2.24.0 does
-        # `from importlib_metadata import entry_points` unconditionally, and
-        # does not declare the backport as a dependency -- on Python 3.9,
-        # which this job pins, the stdlib module is `importlib.metadata` and
-        # the backport is absent, so `ivpm update` exits 1 with a traceback.
-        # The first Actions run this repository ever had, on 2026-08-31,
-        # failed exactly there. This is a workaround at the call site; the
-        # defect is in ivpm's packaging and is recorded upstream of here.
-        python3 -m pip install ivpm importlib_metadata
-        python3 -m ivpm update
-        ./packages/python/bin/python3 -m pip install build
-        ./packages/python/bin/python3 -m build --wheel
+        python3 -m pip install build
+        python3 -m build --wheel
         ls dist/
 
     - name: Check the wheel carries the metadata it is supposed to
@@ -213,7 +211,22 @@ jobs:
         PY
 
     - name: Build Docs
+      # ivpm is provisioned HERE rather than at the top of the job, because
+      # the docs are the only thing in this repository that needs it. When it
+      # stood earlier, an ivpm failure failed the wheel build too -- which is
+      # what happened for every run between 2026-08-31 and this commit.
+      #
+      # importlib_metadata is installed EXPLICITLY. ivpm 2.24.0 does
+      # `from importlib_metadata import entry_points` unconditionally and does
+      # not declare the backport as a dependency -- on Python 3.9, which this
+      # job pins, the stdlib module is `importlib.metadata` and the backport
+      # is absent, so `ivpm update` exits 1 with a traceback. The first
+      # Actions run this repository ever had, on 2026-08-31, failed exactly
+      # there. This is a workaround at the call site; the defect is in ivpm's
+      # packaging and is recorded upstream of here.
       run: |
+        python3 -m pip install ivpm importlib_metadata
+        python3 -m ivpm update
         ./packages/python/bin/sphinx-build -M html ./doc/source build
         touch build/html/.nojekyll
 
