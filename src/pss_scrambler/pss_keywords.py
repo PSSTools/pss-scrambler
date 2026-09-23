@@ -12,7 +12,12 @@ pss_keywords = {
 "join_first", "join_none", "join_select", "list", "lock", "map",
 "match", "null", "output", "override", "package", "parallel",
 "pool", "post_solve", "pre_solve", "private", "protected", "public",
-"pure", "rand", "ref", "repeat", "replicate", "resource", "instance_id"
+# The comma after "instance_id" is load-bearing. Without it Python
+# concatenates the two adjacent string literals into "instance_idreturn" --
+# a word that matches nothing -- so BOTH `instance_id` and the `return`
+# keyword were renamed as if they were user identifiers, and the scrambled
+# output was not valid PSS.
+"pure", "rand", "ref", "repeat", "replicate", "resource", "instance_id",
 "return", "run_end", "run_start", "schedule", "select", "sequence",
 "set", "share", "solve", "state", "static", "stream",
 "string", "struct", "super", "symbol", "target", "this", "true",

@@ -26,7 +26,11 @@ class CmdEncode(object):
     def __call__(self, args):
         t = Translator(
             args.seed, {}, dictionary, {})
-        
+        # --preserve-comments was parsed and then never reached the
+        # translator, whose default is False -- so comments were dropped
+        # whether or not the flag was passed.
+        t.preserve_comments = args.preserve_comments
+
         with open(args.output, "w") as ofp:
             for f in args.files:
                 with open(f, "r") as ifp:
