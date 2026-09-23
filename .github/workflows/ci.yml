@@ -70,23 +70,82 @@ jobs:
     - uses: actions/setup-python@v2
       with:
         python-version: '3.9'
-    - name: Configure Python
-      # DEVELOPMENT BUILDS ARE NOW UNPUBLISHABLE, not merely unpublished.
+    - name: Stamp version
+      # THE TAG IS THE VERSION. On a `v*` build this substitutes the tag into
+      # src/pss_scrambler/__version__.py; everything else gets a dev version
+      # derived from the 0.0.0 placeholder that is committed. There is no
+      # version to bump before tagging and nothing in the tree to keep in step
+      # with the tag.
       #
-      # setup.py appends ".$BUILD_NUM" to the version when BUILD_NUM is set,
-      # so this used to produce 0.0.2.<run-id> -- a perfectly valid and
-      # perfectly uploadable PyPI version, which the branch-gated step below
-      # then uploaded. PyPI holds 0.0.2.4632135087 from exactly that path.
+      # This replaced a hand-maintained `version="0.0.2"` in setup.py plus a
+      # "Check the tag matches the package version" step that failed the
+      # release when the two disagreed. That check was correct and guarded
+      # against forgetting to hand-edit a file -- a step that should not
+      # exist. Substituting removes the step and the check together.
       #
-      # ".dev<run-id>+gh" is a PEP 440 LOCAL VERSION SEGMENT (the part after
-      # the '+'). PyPI rejects any upload carrying one, outright, at the tool.
-      # The tag gate on the publish step is the control; this is the backstop
-      # for the day someone edits that gate. `.dev` also sorts BELOW the
-      # release it derives from. The `+gh` platform tag matters because
-      # GITHUB_RUN_ID is not unique across forges.
+      # DEVELOPMENT BUILDS ARE UNPUBLISHABLE, not merely unpublished.
+      # ".dev<run-id>+gh" carries a PEP 440 LOCAL VERSION SEGMENT (the part
+      # after the '+'), which PyPI rejects outright at the tool. The tag gate
+      # on the publish step is the control; this is the backstop for the day
+      # someone edits that gate. `.dev` also sorts BELOW the release it
+      # derives from, and `+gh` matters because GITHUB_RUN_ID is not unique
+      # across forges. PyPI holds 0.0.2.4632135087 from before this was true.
       #
-      # On a v* tag BUILD_NUM is left unset, so setup.py uses the version
-      # exactly as committed.
+      # Written through a temp file rather than with `sed -i`, whose argument
+      # handling differs between GNU and BSD -- so this form needs no
+      # per-platform variant.
+      run: |
+        set -eu
+        f=src/pss_scrambler/__version__.py
+        case "$GITHUB_REF" in
+          refs/tags/v*)
+            v="${GITHUB_REF#refs/tags/v}"
+            # THE TAG IS SPELLED THE PEP 440 WAY -- v0.0.3, v0.0.3rc1 -- and
+            # goes into the file VERBATIM, so git tag, PyPI version and wheel
+            # filename are one identical string with no transformation
+            # anywhere between them. `rc` only; alpha and beta are not
+            # accepted because nothing has asked for them.
+            bad=0
+            case "$v" in
+              *rc*)
+                core="${v%rc*}"
+                rcnum="${v##*rc}"
+                case "$core"  in ''|*[!0-9.]*) bad=1 ;; esac
+                case "$rcnum" in ''|*[!0-9]*)  bad=1 ;; esac
+                ;;
+              *)
+                case "$v" in ''|*[!0-9.]*) bad=1 ;; esac
+                ;;
+            esac
+            if [ "$bad" -ne 0 ]; then
+              echo "::error::tag v$v is not <major>.<minor>.<patch> or <major>.<minor>.<patch>rc<N> (PEP 440 spelling: v0.0.3rc1, not v0.0.3-rc1)"
+              exit 1
+            fi
+            new="$v"
+            ;;
+          *)
+            new="0.0.0.dev${GITHUB_RUN_ID}+gh"
+            ;;
+        esac
+        sed 's/^__version__ = .*$/__version__ = "'"$new"'"/' "$f" > "$f.stamped"
+        mv "$f.stamped" "$f"
+        # ANTI-VACUITY. A sed whose pattern matches nothing exits 0 and leaves
+        # the file untouched, so renaming or reformatting __version__.py would
+        # turn this step into a silent no-op and ship the 0.0.0 placeholder as
+        # a release.
+        grep -q "^__version__ = \"$new\"\$" "$f" || {
+          echo "::error::failed to stamp version $new into $f"
+          exit 1
+        }
+        grep '^__version__ = ' "$f"
+
+    - name: Build the wheel
+      # `python -m build` with build isolation, NOT `setup.py bdist_wheel`.
+      # setup.py is gone: all metadata lives in pyproject.toml, which is the
+      # only way to emit PEP 639's `License-Expression`. Isolation matters
+      # here because [build-system] requires setuptools>=77 for that field,
+      # and the ivpm-provisioned interpreter carries whatever setuptools it
+      # happens to have.
       run: |
         # Install dependencies required to load ivpm.yaml file.
         #
@@ -100,31 +159,70 @@ jobs:
         # defect is in ivpm's packaging and is recorded upstream of here.
         python3 -m pip install ivpm importlib_metadata
         python3 -m ivpm update
-        case "$GITHUB_REF" in
-          refs/tags/v*) echo "tag build -- leaving the version as committed" ;;
-          *) export BUILD_NUM="dev${GITHUB_RUN_ID}+gh" ;;
-        esac
-        ./packages/python/bin/python3 setup.py bdist_wheel --universal
+        ./packages/python/bin/python3 -m pip install build
+        ./packages/python/bin/python3 -m build --wheel
         ls dist/
+
+    - name: Check the wheel carries the metadata it is supposed to
+      # The migration off setup.py is exactly the change that drops metadata
+      # silently: once a [project] table exists, setuptools IGNORES fields it
+      # could have carried, with a warning rather than an error. A wheel
+      # missing Requires-Dist or Requires-Python installs fine and fails later
+      # on someone else's machine, so the assertions are here rather than in
+      # a reviewer's head.
+      run: |
+        set -eu
+        python3 -m pip install --quiet --upgrade pip
+        python3 - <<'PY'
+        import glob, sys, zipfile
+
+        whl = glob.glob("dist/*.whl")
+        assert len(whl) == 1, f"expected exactly one wheel, found {whl}"
+        with zipfile.ZipFile(whl[0]) as z:
+            names = z.namelist()
+            meta = next(n for n in names if n.endswith(".dist-info/METADATA"))
+            text = z.read(meta).decode()
+
+        missing = [f for f in (
+            "Name: pss-scrambler",
+            "License-Expression: Apache-2.0",
+            "Requires-Python: >=3.9",
+            "Author-email: Matthew Ballance",
+            "Summary: ",
+        ) if f not in text]
+        # Every module the package had before the migration, plus the version
+        # module. A `find` misconfiguration produces a wheel with no code in
+        # it and no error saying so -- this is what notices.
+        for mod in ("__main__", "__version__", "dictionary",
+                    "pss_keywords", "translator"):
+            if f"pss_scrambler/{mod}.py" not in names:
+                missing.append(f"module pss_scrambler/{mod}.py")
+        if "pss_scrambler/cmds/cmd_encode.py" not in names:
+            missing.append("module pss_scrambler/cmds/cmd_encode.py")
+        if not any(n.endswith("entry_points.txt") for n in names):
+            missing.append("entry_points.txt (console script)")
+        for lic in ("LICENSE", "NOTICE"):
+            if not any(n.endswith(f"licenses/{lic}") for n in names):
+                missing.append(f"{lic} (Apache-2.0 section 4(d))")
+
+        if missing:
+            for m in missing:
+                print(f"::error::wheel is missing: {m}")
+            sys.exit(1)
+        print(f"OK: {whl[0]} carries all expected metadata and modules")
+        PY
 
     - name: Build Docs
       run: |
         ./packages/python/bin/sphinx-build -M html ./doc/source build
         touch build/html/.nojekyll
 
-    - name: Check the tag matches the package version
-      # Guards against tagging v0.0.3 while setup.py still says 0.0.2, which
-      # would publish a release under the wrong number -- and PyPI lets a
-      # version be yanked, never reused.
-      if: startsWith(github.ref, 'refs/tags/v')
-      run: |
-        tag="${GITHUB_REF#refs/tags/v}"
-        ver=$(sed -n 's/^version="\(.*\)"/\1/p' setup.py)
-        echo "tag=$tag  setup.py=$ver"
-        if [ "$tag" != "$ver" ]; then
-          echo "::error::tag v$tag does not match version $ver in setup.py"
-          exit 1
-        fi
+    # A "Check the tag matches the package version" step stood here, comparing
+    # the tag against a hand-maintained `version=` in setup.py. It is gone
+    # because what it checked can no longer disagree: the "Stamp version" step
+    # puts the tag INTO the package, and its anti-vacuity grep fails the build
+    # if that substitution did not happen. The wheel filename is now derived
+    # from the tag rather than compared against it.
 
     - name: Publish to PyPi
       # WAS: `startsWith(github.ref, 'refs/heads/main')`.

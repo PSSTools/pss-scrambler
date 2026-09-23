@@ -1,0 +1,58 @@
+# Packaging for pss-scrambler.
+#
+# Replaces setup.py entirely (CA-L1 follow-up). Two things changed, and only
+# the first was the point:
+#
+#   1. A `[project]` table is the ONLY way to emit PEP 639's
+#      `License-Expression: Apache-2.0`. A setup.py `license=` kwarg produces
+#      the legacy `License:` field no matter how new setuptools is -- measured,
+#      not assumed.
+#   2. The version now comes from src/pss_scrambler/__version__.py, which CI
+#      stamps from the tag. See that file for why.
+#
+# The migration hazard here is that setuptools IGNORES setup.py fields once a
+# [project] table exists -- author, description, dependencies, entry points --
+# with a warning rather than an error. Every field the old setup.py carried is
+# restated below; setup.py is deleted rather than left half-authoritative, so
+# there is no second place for this metadata to drift into.
+
+[build-system]
+# setuptools>=77 is the floor for `license = "<SPDX expression>"` as a plain
+# string. Earlier versions expect the table form and will not emit
+# License-Expression, which would make this whole change a no-op.
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pss-scrambler"
+dynamic = ["version"]
+description = "PSS Scrambler replaces user-specified identifiers with random names."
+readme = "README.md"
+license = "Apache-2.0"
+# license-files is left at the setuptools default glob, which already covers
+# LICENSE* and NOTICE*. Apache-2.0 section 4(d) makes shipping NOTICE the
+# actual requirement, so this is not incidental.
+requires-python = ">=3.9"
+keywords = ["PSS", "Portable Test and Stimulus", "obfuscator"]
+authors = [
+    { name = "Matthew Ballance", email = "matt.ballance@gmail.com" },
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/psstools/pss-scrambler"
+Source = "https://github.com/psstools/pss-scrambler"
+
+[project.scripts]
+pss-scrambler = "pss_scrambler.__main__:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "pss_scrambler.__version__.__version__" }
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+# Listed rather than auto-discovered. There is no __init__.py in either
+# directory -- this has always been an implicit namespace package -- and
+# `find` in its default mode skips directories without one, which would
+# produce a wheel containing no code at all and no error saying so.
+packages = ["pss_scrambler", "pss_scrambler.cmds"]
